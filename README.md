@@ -58,10 +58,12 @@ Setelah server berjalan dan ekstensi aktif, panah hijau akan muncul secara otoma
 
 ## 👤 Pembuat
 
-Dibuat oleh **Fajar Sad Chess** — proyek spesial untuk client TikTok.
+Dibuat oleh **hmnf31** — proyek spesial untuk client di TikTok.
 
 TikTok: [@fajarsadchess](https://tiktok.com/@fajarsadchess)
 
 ## 📄 Lisensi
 
 Proyek ini menggunakan Maia-2 ([MIT License](servermaia2/maia2/LICENSE)) dan kode tambahan di bawah lisensi MIT.
+
+
