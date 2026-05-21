@@ -8,6 +8,10 @@ const PERSONA_DESCS = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  const serverUrl = document.getElementById("serverUrl");
+  const testBtn = document.getElementById("testBtn");
+  const serverDot = document.getElementById("serverDot");
+  const serverLabel = document.getElementById("serverLabel");
   const personaSelect = document.getElementById("personaSelect");
   const personaDesc = document.getElementById("personaDesc");
   const gameMode = document.getElementById("gameMode");
@@ -25,14 +29,33 @@ document.addEventListener("DOMContentLoaded", () => {
     personaDesc.textContent = PERSONA_DESCS[personaSelect.value] || "";
   });
 
-  chrome.storage.local.get([
-    "personaSelect", "gameMode", "eloSelf", "eloOppo",
-    "arrowToggle", "multiLineToggle", "evalToggle", "blunderToggle", "analysisToggle"
-  ], (data) => {
-    if (data.personaSelect) {
-      personaSelect.value = data.personaSelect;
-      personaDesc.textContent = PERSONA_DESCS[data.personaSelect] || "";
+  function setServerStatus(state, msg) {
+    serverDot.className = "server-dot " + state;
+    serverLabel.textContent = msg;
+  }
+
+  async function testConnection(url) {
+    setServerStatus("checking", "Testing...");
+    try {
+      let resp = await fetch(url.replace(/\/+$/, "") + "/personas", { signal: AbortSignal.timeout(5000) });
+      if (resp.ok) {
+        setServerStatus("online", "Online");
+        return true;
+      }
+      setServerStatus("offline", "Error " + resp.status);
+      return false;
+    } catch (e) {
+      setServerStatus("offline", "Unreachable");
+      return false;
     }
+  }
+
+  chrome.storage.local.get([
+    "serverUrl", "personaSelect", "gameMode", "eloSelf", "eloOppo",
+    "arrowToggle", "multiLineToggle", "evalToggle", "blunderToggle", "analysisToggle"
+  ], async (data) => {
+    if (data.serverUrl) serverUrl.value = data.serverUrl;
+    if (data.personaSelect) { personaSelect.value = data.personaSelect; personaDesc.textContent = PERSONA_DESCS[data.personaSelect] || ""; }
     if (data.gameMode) gameMode.value = data.gameMode;
     if (data.eloSelf) eloSelf.value = data.eloSelf;
     if (data.eloOppo) eloOppo.value = data.eloOppo;
@@ -41,10 +64,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (data.evalToggle !== undefined) evalToggle.checked = data.evalToggle;
     if (data.blunderToggle !== undefined) blunderToggle.checked = data.blunderToggle;
     if (data.analysisToggle !== undefined) analysisToggle.checked = data.analysisToggle;
+    await testConnection(serverUrl.value);
   });
 
-  saveBtn.addEventListener("click", () => {
+  testBtn.addEventListener("click", async () => {
+    await testConnection(serverUrl.value);
+  });
+
+  saveBtn.addEventListener("click", async () => {
     chrome.storage.local.set({
+      serverUrl: serverUrl.value,
       personaSelect: personaSelect.value,
       gameMode: gameMode.value,
       eloSelf: parseInt(eloSelf.value),
@@ -58,6 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, () => {
       status.className = "show";
       setTimeout(() => { status.className = ""; }, 1500);
+      testConnection(serverUrl.value);
     });
   });
 });

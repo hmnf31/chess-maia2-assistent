@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pt
+*.pth
+.git/
+.gitignore
+README.md
+maia2_models/*.pt
+repertoire.json
+server_output.txt
+server_error.txt

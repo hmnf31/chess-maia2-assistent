@@ -37,7 +37,7 @@
             display: block; font-size: 11px; font-weight: 500;
             color: #b0aca8; margin-bottom: 4px;
         }
-        select, input[type="number"] {
+        select, input[type="number"], input[type="text"] {
             width: 100%; background: #121110; color: #e8e6e3;
             border: 1px solid #3a3835; padding: 8px 10px;
             border-radius: 5px; outline: none;
@@ -74,12 +74,33 @@
         }
         .btn:hover { background: #6e9d40; }
         .btn:active { background: #5c8a34; }
+        .btn-small {
+            padding: 6px 10px; font-size: 11px; margin-top: 6px;
+            background: #3a3835; border-radius: 4px; border: none;
+            color: #b0aca8; cursor: pointer; transition: 0.2s;
+        }
+        .btn-small:hover { background: #4a4845; color: #fff; }
         #status {
             text-align: center; color: #81b64c; font-size: 11px;
             padding: 6px; display: none; font-weight: 500;
         }
         #status.show { display: block; animation: fadeIn 0.2s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .server-status {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11px; color: #b0aca8; margin-top: 6px;
+        }
+        .server-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #555; flex-shrink: 0;
+        }
+        .server-dot.online { background: #81b64c; }
+        .server-dot.offline { background: #e74c3c; }
+        .server-dot.checking { background: #f39c12; animation: pulse 0.8s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .server-row { display: flex; gap: 6px; }
+        .server-row input { flex: 1; }
+        .server-row .btn-small { margin: 0; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -89,6 +110,18 @@
     </div>
 
     <div class="content">
+        <div class="group">
+            <div class="group-title">Server</div>
+            <div class="server-row">
+                <input type="text" id="serverUrl" value="http://127.0.0.1:5000" placeholder="http://127.0.0.1:5000">
+                <button class="btn-small" id="testBtn">Test</button>
+            </div>
+            <div class="server-status">
+                <span class="server-dot" id="serverDot"></span>
+                <span id="serverLabel">Not connected</span>
+            </div>
+        </div>
+
         <div class="group">
             <div class="group-title">Persona</div>
             <div class="field">

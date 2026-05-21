@@ -5,6 +5,8 @@
     "permissions": ["storage"],
     "host_permissions": [
       "http://127.0.0.1:5000/*",
+      "https://*.hf.space/*",
+      "https://*.huggingface.co/*",
       "*://*.chess.com/*",
       "*://*.lichess.org/*"
     ],

@@ -6,11 +6,32 @@ import json
 import os
 import random
 import chess
+import time
 
 from maia2 import model, inference
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+API_KEY = os.environ.get("MAIA_API_KEY")
+
+HF_SPACE = os.environ.get("HF_SPACE", "0")
+
+def require_auth():
+    if not API_KEY:
+        return None
+    key = request.headers.get("X-API-Key") or (request.json or {}).get("api_key")
+    if key != API_KEY:
+        return jsonify({"error": "Unauthorized: invalid API key"}), 401
+    return None
+
+@app.before_request
+def before_request():
+    if request.method == "OPTIONS":
+        return
+    err = require_auth()
+    if err:
+        return err
 
 loaded_models = {}
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -466,4 +487,7 @@ def predict_top5():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, threaded=True)
+    port = int(os.environ.get("PORT", 5000))
+    host = "0.0.0.0" if HF_SPACE == "1" else "127.0.0.1"
+    print(f"Listening on {host}:{port}")
+    app.run(host=host, port=port, threaded=True)

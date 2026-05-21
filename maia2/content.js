@@ -14,10 +14,13 @@ let showArrow = true;
 let showMultiLine = true;
 let blunderWarn = true;
 let showAnalysis = true;
+let serverUrl = "http://127.0.0.1:5000";
+let apiKey = "";
 
 chrome.storage.local.get([
   "personaSelect", "modelSelect", "eloSelf", "eloOppo",
-  "evalToggle", "arrowToggle", "multiLineToggle", "blunderToggle", "analysisToggle"
+  "evalToggle", "arrowToggle", "multiLineToggle", "blunderToggle", "analysisToggle",
+  "serverUrl", "apiKey"
 ], (data) => {
   if (data.personaSelect) currentPersona = data.personaSelect;
   if (data.modelSelect) currentModel = data.modelSelect;
@@ -28,6 +31,8 @@ chrome.storage.local.get([
   if (data.multiLineToggle !== undefined) showMultiLine = data.multiLineToggle;
   if (data.blunderToggle !== undefined) blunderWarn = data.blunderToggle;
   if (data.analysisToggle !== undefined) showAnalysis = data.analysisToggle;
+  if (data.serverUrl) serverUrl = data.serverUrl;
+  if (data.apiKey) apiKey = data.apiKey;
 });
 
 let castlingTracker = {
@@ -120,9 +125,17 @@ function squaresToUci(fromKey, toKey, board) {
   return file + rank + tfile + trunk + promotion;
 }
 
+async function apiFetch(endpoint, body) {
+  let headers = { "Content-Type": "application/json" };
+  if (apiKey) headers["X-API-Key"] = apiKey;
+  return fetch(serverUrl + endpoint, {
+    method: "POST", headers: headers, body: JSON.stringify(body)
+  });
+}
+
 async function checkBlunder(fen, moveUci) {
   try {
-    let resp = await fetch("http://127.0.0.1:5000/evaluate_move", {
+    let resp = await apiFetch("/evaluate_move", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -176,11 +189,7 @@ async function askEngine(fen) {
       mode: currentModel,
       persona: currentPersona
     };
-    let resp = await fetch("http://127.0.0.1:5000/predict", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    let resp = await apiFetch("/predict", body);
     let data = await resp.json();
     if (data.error) { console.error("Engine Error:", data.error); return; }
 
@@ -475,13 +484,9 @@ function checkGameOver() {
 async function analyzeGame() {
   if (gameHistory.length < 3) return;
   try {
-    let resp = await fetch("http://127.0.0.1:5000/analyze_game", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        game_history: gameHistory,
-        persona: currentPersona
-      })
+    let resp = await apiFetch("/analyze_game", {
+      game_history: gameHistory,
+      persona: currentPersona
     });
     let data = await resp.json();
     showAnalysisResult(data);
