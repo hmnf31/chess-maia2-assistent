@@ -1,7 +1,12 @@
 {
     "manifest_version": 3,
+<<<<<<< HEAD
     "name": "Maia-2 Human-like Chess Engine",
     "version": "4.0",
+=======
+    "name": "My Chess Assistant (Maia-2 Edition)",
+    "version": "3.0",
+>>>>>>> 207f98cca6bceb1c811290cd207f4d18a7b954db
     "permissions": ["storage"],
     "host_permissions": [
       "http://127.0.0.1:5000/*",
@@ -10,7 +15,11 @@
     ],
     "action": {
       "default_popup": "popup.html",
+<<<<<<< HEAD
       "default_title": "Maia-2 Human Config"
+=======
+      "default_title": "Maia-2 Settings"
+>>>>>>> 207f98cca6bceb1c811290cd207f4d18a7b954db
     },
     "content_scripts": [
       {

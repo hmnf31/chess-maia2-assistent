@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 __pycache__/
 *.pyc
 *.pt
@@ -7,3 +8,7 @@ __pycache__/
 repertoire.json
 server_output.txt
 server_error.txt
+=======
+
+servermaia2/maia2_models/
+>>>>>>> 207f98cca6bceb1c811290cd207f4d18a7b954db

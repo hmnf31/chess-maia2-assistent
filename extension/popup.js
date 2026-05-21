@@ -29,7 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "personaSelect", "gameMode", "eloSelf", "eloOppo",
     "arrowToggle", "multiLineToggle", "evalToggle", "blunderToggle", "analysisToggle"
   ], (data) => {
-    if (data.personaSelect) { personaSelect.value = data.personaSelect; personaDesc.textContent = PERSONA_DESCS[data.personaSelect] || ""; }
+    if (data.personaSelect) {
+      personaSelect.value = data.personaSelect;
+      personaDesc.textContent = PERSONA_DESCS[data.personaSelect] || "";
+    }
     if (data.gameMode) gameMode.value = data.gameMode;
     if (data.eloSelf) eloSelf.value = data.eloSelf;
     if (data.eloOppo) eloOppo.value = data.eloOppo;
@@ -53,8 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
       analysisToggle: analysisToggle.checked,
       modelSelect: gameMode.value
     }, () => {
-      status.style.display = "block";
-      setTimeout(() => { status.style.display = "none"; }, 1500);
+      status.className = "show";
+      setTimeout(() => { status.className = ""; }, 1500);
     });
   });
 });

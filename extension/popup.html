@@ -3,87 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #262421; color: #fff; width: 290px; margin: 0; padding: 15px; }
-        h2 { text-align: center; color: #81b64c; margin-top: 0; font-size: 16px; border-bottom: 2px solid #312e2b; padding-bottom: 10px; }
-        .control-group { margin-bottom: 12px; background: #312e2b; padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 12px; color: #c3c2c1; }
-        select, input[type="number"] { width: 100%; background: #121110; color: #fff; border: 1px solid #454341; padding: 8px; border-radius: 4px; outline: none; box-sizing: border-box; }
-        .desc-text { font-size: 11px; color: #8a8a8a; margin-top: 4px; }
-        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
-        .toggle-row label { margin: 0; }
-        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+            background: #1a1a1a; color: #e8e6e3;
+            width: 320px; padding: 0; font-size: 13px;
+        }
+        .header {
+            background: linear-gradient(135deg, #2d2d2d, #1a1a1a);
+            padding: 14px 16px; text-align: center;
+            border-bottom: 2px solid #81b64c;
+        }
+        .header h2 {
+            color: #81b64c; font-size: 15px; font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .header span { color: #6a6a6a; font-size: 11px; display: block; margin-top: 2px; }
+        .content { padding: 10px 12px 12px; }
+        .group {
+            background: #252423; border-radius: 8px;
+            padding: 12px; margin-bottom: 8px;
+            border: 1px solid #333230;
+        }
+        .group-title {
+            font-size: 11px; font-weight: 600; color: #81b64c;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            margin-bottom: 10px; padding-bottom: 6px;
+            border-bottom: 1px solid #333230;
+        }
+        .field { margin-bottom: 10px; }
+        .field:last-child { margin-bottom: 0; }
+        .field label {
+            display: block; font-size: 11px; font-weight: 500;
+            color: #b0aca8; margin-bottom: 4px;
+        }
+        select, input[type="number"] {
+            width: 100%; background: #121110; color: #e8e6e3;
+            border: 1px solid #3a3835; padding: 8px 10px;
+            border-radius: 5px; outline: none;
+            font-size: 13px; transition: border 0.2s;
+        }
+        select:focus, input:focus { border-color: #81b64c; }
+        select { cursor: pointer; appearance: auto; }
+        .elo-row { display: flex; gap: 8px; }
+        .elo-row .field { flex: 1; margin-bottom: 0; }
+        .desc-text { font-size: 11px; color: #81b64c; margin-top: 4px; font-style: italic; }
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 5px 0; border-bottom: 1px solid #1f1e1c;
+        }
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-row label { font-size: 12px; color: #d0ccc8; cursor: pointer; margin: 0; }
+        .switch { position: relative; display: inline-block; width: 36px; height: 18px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #454341; transition: .3s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; transition: .3s; border-radius: 50%; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: #3a3835; transition: .25s; border-radius: 18px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 14px; width: 14px;
+            left: 2px; bottom: 2px; background: #888; transition: .25s; border-radius: 50%;
+        }
         input:checked + .slider { background: #81b64c; }
-        input:checked + .slider:before { transform: translateX(20px); }
-        .btn { width: 100%; background: #81b64c; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        input:checked + .slider:before { background: #fff; transform: translateX(18px); }
+        .btn {
+            width: 100%; background: #81b64c; color: #fff;
+            border: none; padding: 10px; border-radius: 6px;
+            font-weight: 600; font-size: 13px; cursor: pointer;
+            transition: background 0.2s; margin-top: 4px;
+        }
         .btn:hover { background: #6e9d40; }
-        .btn-danger { background: #e74c3c; }
-        .btn-danger:hover { background: #c0392b; }
-        #status { text-align: center; color: #81b64c; font-size: 12px; margin-top: 10px; display: none; }
-        #personaDesc { font-size: 11px; color: #81b64c; margin-top: 4px; font-style: italic; }
-        .section-title { font-size: 13px; color: #81b64c; margin: 4px 0 8px 0; font-weight: bold; }
+        .btn:active { background: #5c8a34; }
+        #status {
+            text-align: center; color: #81b64c; font-size: 11px;
+            padding: 6px; display: none; font-weight: 500;
+        }
+        #status.show { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
-    <h2>Maia-2 Human Config</h2>
-
-    <div class="control-group">
-        <label>Persona / Kepribadian:</label>
-        <select id="personaSelect">
-            <option value="beginner">Pemula Antusias (1200)</option>
-            <option value="club_player" selected>Pemain Klub (1500)</option>
-            <option value="tournament">Tournament Grinder (1800)</option>
-            <option value="talented_youth">Talenta Muda (2100)</option>
-            <option value="master">Master Senior (2400)</option>
-            <option value="joker">The Joker (1400)</option>
-        </select>
-        <div id="personaDesc">Seperti pemain klub mingguan</div>
+    <div class="header">
+        <h2>Maia-2 Engine</h2>
+        <span>Human-like Chess Assistant</span>
     </div>
 
-    <div class="control-group">
-        <div class="section-title">Settings</div>
-        <label>Game Mode:</label>
-        <select id="gameMode">
-            <option value="blitz" selected>Blitz</option>
-            <option value="rapid">Rapid</option>
-        </select>
-    </div>
+    <div class="content">
+        <div class="group">
+            <div class="group-title">Persona</div>
+            <div class="field">
+                <label>Kepribadian</label>
+                <select id="personaSelect">
+                    <option value="beginner">Pemula Antusias (1200)</option>
+                    <option value="club_player" selected>Pemain Klub (1500)</option>
+                    <option value="tournament">Tournament Grinder (1800)</option>
+                    <option value="talented_youth">Talenta Muda (2100)</option>
+                    <option value="master">Master Senior (2400)</option>
+                    <option value="joker">The Joker (1400)</option>
+                </select>
+                <div id="personaDesc">Main solid seperti pemain klub mingguan</div>
+            </div>
+        </div>
 
-    <div class="control-group">
-        <label>My ELO:</label>
-        <input type="number" id="eloSelf" value="1500" min="800" max="3500">
-        <label style="margin-top:8px;">Opponent ELO:</label>
-        <input type="number" id="eloOppo" value="1500" min="800" max="3500">
-    </div>
+        <div class="group">
+            <div class="group-title">Game</div>
+            <div class="field">
+                <label>Mode</label>
+                <select id="gameMode">
+                    <option value="blitz" selected>Blitz</option>
+                    <option value="rapid">Rapid</option>
+                </select>
+            </div>
+            <div class="elo-row" style="margin-top:8px;">
+                <div class="field">
+                    <label>My ELO</label>
+                    <input type="number" id="eloSelf" value="1500" min="800" max="3500">
+                </div>
+                <div class="field">
+                    <label>Opponent</label>
+                    <input type="number" id="eloOppo" value="1500" min="800" max="3500">
+                </div>
+            </div>
+        </div>
 
-    <div class="control-group">
-        <div class="section-title">Toggles</div>
-        <div class="toggle-row">
-            <label>Show Arrows</label>
-            <label class="switch"><input type="checkbox" id="arrowToggle" checked><span class="slider"></span></label>
+        <div class="group">
+            <div class="group-title">Display</div>
+            <div class="toggle-row">
+                <label>Arrows</label>
+                <label class="switch"><input type="checkbox" id="arrowToggle" checked><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+                <label>Multi-Line (Top 5)</label>
+                <label class="switch"><input type="checkbox" id="multiLineToggle" checked><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+                <label>Eval Bar</label>
+                <label class="switch"><input type="checkbox" id="evalToggle" checked><span class="slider"></span></label>
+            </div>
         </div>
-        <div class="toggle-row">
-            <label>Multi-Line (Top 5)</label>
-            <label class="switch"><input type="checkbox" id="multiLineToggle" checked><span class="slider"></span></label>
-        </div>
-        <div class="toggle-row">
-            <label>Eval Bar</label>
-            <label class="switch"><input type="checkbox" id="evalToggle" checked><span class="slider"></span></label>
-        </div>
-        <div class="toggle-row">
-            <label>Blunder Warning</label>
-            <label class="switch"><input type="checkbox" id="blunderToggle" checked><span class="slider"></span></label>
-        </div>
-        <div class="toggle-row">
-            <label>End Game Analysis</label>
-            <label class="switch"><input type="checkbox" id="analysisToggle" checked><span class="slider"></span></label>
-        </div>
-    </div>
 
-    <button class="btn" id="saveBtn">Simpan Pengaturan</button>
-    <div id="status">Pengaturan Tersimpan!</div>
+        <div class="group">
+            <div class="group-title">Analysis</div>
+            <div class="toggle-row">
+                <label>Blunder Warning</label>
+                <label class="switch"><input type="checkbox" id="blunderToggle" checked><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+                <label>End Game Analysis</label>
+                <label class="switch"><input type="checkbox" id="analysisToggle" checked><span class="slider"></span></label>
+            </div>
+        </div>
+
+        <button class="btn" id="saveBtn">Simpan</button>
+        <div id="status">Pengaturan tersimpan</div>
+    </div>
 
     <script src="popup.js"></script>
 </body>
