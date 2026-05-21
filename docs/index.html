@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maia-2 Human-like Chess Engine</title>
+<meta name="description" content="AI Chess Engine that predicts human-like moves based on ELO, personality, emotion, and fatigue. Chrome extension + local server.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:#0a0a0a;color:#e8e6e3;line-height:1.6}
+
+.container{max-width:1100px;margin:0 auto;padding:0 20px}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,10,.9);backdrop-filter:blur(12px);border-bottom:1px solid #1a1a1a}
+nav .container{display:flex;align-items:center;justify-content:space-between;padding:12px 20px}
+nav .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:#e8e6e3;text-decoration:none}
+nav .logo span{color:#81b64c}
+nav .nav-links{display:flex;gap:24px;align-items:center}
+nav .nav-links a{color:#8a8682;text-decoration:none;font-size:13px;font-weight:500;transition:color .2s}
+nav .nav-links a:hover{color:#e8e6e3}
+nav .nav-links .btn-nav{background:#81b64c;color:#fff;padding:8px 18px;border-radius:6px;font-weight:600;font-size:13px}
+nav .nav-links .btn-nav:hover{background:#6e9d40;color:#fff}
+
+/* Hero */
+.hero{min-height:100vh;display:flex;align-items:center;padding-top:60px;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%, rgba(129,182,76,.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(129,182,76,.05) 0%, transparent 60%)}
+.hero .container{position:relative}
+.hero h1{font-size:clamp(2rem,6vw,4rem);font-weight:800;line-height:1.1;margin-bottom:16px}
+.hero h1 span{color:#81b64c}
+.hero p{font-size:clamp(1rem,2vw,1.2rem);color:#8a8682;max-width:640px;margin-bottom:32px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;background:#81b64c;color:#fff;padding:14px 28px;border-radius:8px;font-weight:600;font-size:15px;text-decoration:none;transition:all .2s;border:none;cursor:pointer}
+.btn:hover{background:#6e9d40;transform:translateY(-1px)}
+.btn-secondary{background:#1a1a1a;color:#e8e6e3;border:1px solid #2a2826}
+.btn-secondary:hover{background:#2a2826;border-color:#3a3835}
+.btn-outline{background:transparent;color:#81b64c;border:1px solid #81b64c}
+.btn-outline:hover{background:#81b64c;color:#fff}
+.btn-lg{padding:16px 32px;font-size:16px}
+
+/* Sections */
+section{padding:80px 0}
+.section-title{font-size:clamp(1.4rem,3vw,2rem);font-weight:700;margin-bottom:12px;text-align:center}
+.section-sub{color:#8a8682;text-align:center;max-width:600px;margin:0 auto 48px;font-size:15px}
+.section-title span{color:#81b64c}
+
+/* Cards grid */
+.grid-2{display:grid;grid-template-columns:1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:1fr;gap:20px}
+
+.card{background:#121110;border:1px solid #1f1e1c;border-radius:12px;padding:28px;transition:border-color .2s}
+.card:hover{border-color:#2a2826}
+.card .icon{width:44px;height:44px;background:rgba(129,182,76,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
+.card h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.card p{font-size:13px;color:#8a8682;line-height:1.6}
+.card .badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;margin-bottom:10px}
+.badge-green{background:rgba(129,182,76,.15);color:#81b64c}
+.badge-blue{background:rgba(52,152,219,.15);color:#3498db}
+.badge-orange{background:rgba(243,156,18,.15);color:#f39c12}
+.badge-purple{background:rgba(155,89,182,.15);color:#9b59b6}
+
+/* How it works steps */
+.steps{display:grid;grid-template-columns:1fr;gap:0;max-width:700px;margin:0 auto}
+.step{display:flex;gap:20px;padding:24px 0;border-bottom:1px solid #1a1a1a}
+.step:last-child{border-bottom:none}
+.step-num{width:36px;height:36px;background:#81b64c;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;margin-top:2px}
+.step-content{flex:1}
+.step-content h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.step-content p{font-size:13px;color:#8a8682}
+
+/* Persona table */
+.table-wrap{overflow-x:auto;border:1px solid #1f1e1c;border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:#121110}
+th{padding:12px 14px;text-align:left;font-weight:600;color:#81b64c;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #1f1e1c}
+td{padding:10px 14px;border-bottom:1px solid #151514;color:#c8c4c0}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#151514}
+
+/* Team / selling point */
+.selling-points{display:grid;grid-template-columns:1fr;gap:24px}
+.selling-point{text-align:center;padding:32px 20px;background:#121110;border:1px solid #1f1e1c;border-radius:12px}
+.selling-point .sp-icon{font-size:36px;margin-bottom:12px}
+.selling-point h3{font-size:17px;font-weight:600;margin-bottom:8px}
+.selling-point p{font-size:13px;color:#8a8682;max-width:400px;margin:0 auto}
+
+/* Pricing hint */
+.pricing-note{text-align:center;background:linear-gradient(135deg,rgba(129,182,76,.1),transparent);border:1px solid rgba(129,182,76,.2);border-radius:12px;padding:36px 24px;margin-top:40px}
+.pricing-note h3{font-size:18px;font-weight:600;color:#81b64c;margin-bottom:8px}
+.pricing-note p{font-size:14px;color:#8a8682;max-width:500px;margin:0 auto 16px}
+
+/* Footer */
+footer{text-align:center;padding:40px 20px;border-top:1px solid #1a1a1a;color:#6a6662;font-size:12px}
+footer a{color:#81b64c;text-decoration:none}
+footer .social-links{display:flex;justify-content:center;gap:16px;margin:12px 0}
+footer .social-links a{color:#6a6662;font-size:13px}
+footer .social-links a:hover{color:#e8e6e3}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:#121110;border-radius:8px;padding:4px;margin-bottom:24px;overflow-x:auto}
+.tab{padding:10px 20px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:#6a6662;white-space:nowrap;transition:all .2s}
+.tab.active{background:#1f1e1c;color:#e8e6e3}
+.tab:hover{color:#e8e6e3}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Responsive */
+@media(min-width:640px){
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}
+  .selling-points{grid-template-columns:repeat(3,1fr)}
+  .steps{grid-template-columns:1fr}
+}
+@media(min-width:768px){
+  section{padding:100px 0}
+  .grid-3{grid-template-columns:repeat(3,1fr);grid-template-rows:auto}
+  .hero h1{font-size:3.5rem}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="#" class="logo">♟ <span>Maia-2</span></a>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#features">Features</a>
+      <a href="#usage">Usage</a>
+      <a href="#download" class="btn-nav">Download</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="container">
+    <h1>Play Against <span>Human-like</span> Chess AI</h1>
+    <p>Maia-2 predicts moves the way humans play — based on ELO, personality, emotion, and fatigue. Not an engine that calculates the strongest move, but one that thinks like your opponent.</p>
+    <div class="hero-btns">
+      <a href="#download" class="btn btn-lg">Download Extension</a>
+      <a href="#usage" class="btn btn-secondary btn-lg">How It Works</a>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="container">
+    <h2 class="section-title">What Is <span>Maia-2</span>?</h2>
+    <p class="section-sub">Maia-2 (NeurIPS 2024) is a neural network trained on millions of human chess games. Unlike Stockfish or LC0 that search for the mathematically strongest move, Maia-2 predicts the move a human would actually play at a given rating level.</p>
+
+    <div class="selling-points">
+      <div class="selling-point">
+        <div class="sp-icon">🎯</div>
+        <h3>ELO-Based Predictions</h3>
+        <p>Adjusts to any skill level from 800 to 3500 — the same position gets different moves for different ratings</p>
+      </div>
+      <div class="selling-point">
+        <div class="sp-icon">🧠</div>
+        <h3>Personality System</h3>
+        <p>6 distinct personas with unique playing styles, temperature, and behavioral parameters</p>
+      </div>
+      <div class="selling-point">
+        <div class="sp-icon">⚡</div>
+        <h3>Dual Mode</h3>
+        <p>Use it online via Hugging Face Spaces (no install) or run locally for full control</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="background:#0d0d0d">
+  <div class="container">
+    <h2 class="section-title">Engine <span>Features</span></h2>
+    <p class="section-sub">Beyond raw prediction — layers that simulate realistic human behavior</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <span class="badge badge-green">PERSONA</span>
+        <div class="icon">👤</div>
+        <h3>6 Unique Personas</h3>
+        <p>From Beginner (1200) to Master (2400), each with custom ELO, temperature, style, and behavioral flags.</p>
+      </div>
+      <div class="card">
+        <span class="badge badge-blue">EMOTION</span>
+        <div class="icon">😤</div>
+        <h3>Emotion State Machine</h3>
+        <p>Mood changes during play: calm → confident → pressured → frustrated → tired → aggressive. Affects move selection.</p>
+      </div>
+      <div class="card">
+        <span class="badge badge-orange">FATIGUE</span>
+        <div class="icon">😩</div>
+        <h3>Fatigue System</h3>
+        <p>After 40 moves, accuracy degrades. Longer games = more mistakes, just like human players.</p>
+      </div>
+      <div class="card">
+        <span class="badge badge-purple">STYLE</span>
+        <div class="icon">🎨</div>
+        <h3>Style Biasing</h3>
+        <p>Each persona prefers a play style — aggressive, positional, solid, technical, or universal (no bias).</p>
+      </div>
+      <div class="card">
+        <span class="badge badge-green">STOCHASTIC</span>
+        <div class="icon">🎲</div>
+        <h3>Stochastic Sampling</h3>
+        <p>Moves are sampled from the probability distribution, not always the top move. Temperature controls randomness.</p>
+      </div>
+      <div class="card">
+        <span class="badge badge-blue">REPERTOIRE</span>
+        <div class="icon">📖</div>
+        <h3>Transposition Table</h3>
+        <p>The same position always gets the same response — simulating a player's learned repertoire.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="personas">
+  <div class="container">
+    <h2 class="section-title">Persona <span>Profiles</span></h2>
+    <p class="section-sub">Each persona is a complete behavioral profile with unique parameters</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>ELO</th>
+            <th>Temperature</th>
+            <th>Style</th>
+            <th>Emotion</th>
+            <th>Fatigue</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Pemula Antusias</td><td>1200</td><td>0.95</td><td>Aggressive</td><td>✅</td><td>✅</td><td>Likes to attack, prone to blunders</td></tr>
+          <tr><td>Pemain Klub</td><td>1500</td><td>0.70</td><td>Solid</td><td>✅</td><td>✅</td><td>Club-level weekly player</td></tr>
+          <tr><td>Tournament Grinder</td><td>1800</td><td>0.45</td><td>Positional</td><td>✅</td><td>✅</td><td>Solid, rarely blunders</td></tr>
+          <tr><td>Talenta Muda</td><td>2100</td><td>0.35</td><td>Aggressive</td><td>✅</td><td>❌</td><td>Sharp tactics, high energy</td></tr>
+          <tr><td>Master Senior</td><td>2400</td><td>0.15</td><td>Technical</td><td>❌</td><td>❌</td><td>Strong endgame, precise</td></tr>
+          <tr><td>The Joker</td><td>1400</td><td>1.50</td><td>Aggressive</td><td>✅</td><td>✅</td><td>Anti-method, unpredictable</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="usage" style="background:#0d0d0d">
+  <div class="container">
+    <h2 class="section-title">How To <span>Use</span></h2>
+    <p class="section-sub">Two ways to use — pick the one that suits you</p>
+
+    <div class="tabs" id="usageTabs">
+      <button class="tab active" data-tab="online">🌐 Online (No Install)</button>
+      <button class="tab" data-tab="local">💻 Local Server</button>
+    </div>
+
+    <div class="tab-content active" id="tab-online">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Install Extension</h3>
+            <p>Download the extension folder, go to <code>chrome://extensions</code>, enable Developer mode, click Load unpacked, and select the <code>extension</code> folder.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Open Chess.com or Lichess</h3>
+            <p>The extension automatically connects to the online server at <code>https://hmnf31-maia2online.hf.space</code>. No Python or server setup needed.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Select Persona & Play</h3>
+            <p>Click the extension icon to choose your persona, adjust ELO, and toggle features. Green arrows appear on the board showing the best moves.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-local">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Install Python & Dependencies</h3>
+            <p>Requires Python 3.10+. Run: <code>pip install -r requirements.txt</code></p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Start the Server</h3>
+            <p>Run <code>python server.py</code> or double-click <code>jalankan_server.bat</code>. The server starts at <code>http://127.0.0.1:5000</code>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Load Extension & Switch URL</h3>
+            <p>Load the extension from the <code>extension</code> folder. In the popup, change server URL to <code>http://127.0.0.1:5000</code>, click Test, then Save.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="extension">
+  <div class="container">
+    <h2 class="section-title">Chrome Extension <span>Features</span></h2>
+    <p class="section-sub">Visual hints directly on Chess.com and Lichess boards</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="icon">🔲</div>
+        <h3>Multi-Line Analysis</h3>
+        <p>Top 5 moves shown with colored arrows — best move in green, others in blue/orange/purple/gray with probability percentages.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📊</div>
+        <h3>Eval Bar</h3>
+        <p>Real-time win probability bar displayed next to the board, like Stockfish evaluation but based on human prediction.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🚨</div>
+        <h3>Blunder Detection</h3>
+        <p>Instant popup warning when your move deviates significantly from the recommended human move.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📝</div>
+        <h3>End Game Analysis</h3>
+        <p>After the game ends, automatic analysis shows accuracy percentage, blunder count, and dominant mood.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚙️</div>
+        <h3>Full Config Panel</h3>
+        <p>Popup with persona selection, ELO sliders, temperature, style override, emotion/fatigue toggles, and server URL.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔐</div>
+        <h3>API Key Support</h3>
+        <p>Secure your online server with an API key. Configure through the extension popup or environment variables.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="webui" style="background:#0d0d0d">
+  <div class="container">
+    <h2 class="section-title">Web Interface <span>(HF Spaces)</span></h2>
+    <p class="section-sub">Access the engine directly from your browser — no extension needed</p>
+    <div class="card" style="text-align:center;padding:40px 24px">
+      <div class="icon" style="margin:0 auto 14px;font-size:28px">🌐</div>
+      <h3>Open the Config Panel</h3>
+      <p style="max-width:500px;margin:8px auto 20px">Visit <code>https://hmnf31-maia2online.hf.space</code> to access the full engine control panel. Select persona, adjust parameters, input any FEN position, and get instant analysis with best move, top 5, win probability, and engine mood.</p>
+      <a href="https://hmnf31-maia2online.hf.space" target="_blank" class="btn">Open Web UI →</a>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="container">
+    <h2 class="section-title">Get <span>Started</span></h2>
+    <p class="section-sub">Download the extension or clone the full project with server</p>
+
+    <div class="grid-2">
+      <div class="card" style="text-align:center;padding:36px 24px">
+        <div style="font-size:40px;margin-bottom:12px">📦</div>
+        <h3>Extension Only</h3>
+        <p style="font-size:13px;color:#8a8682;margin:8px 0 16px">Just the Chrome extension — works immediately with the online server. No installation required.</p>
+        <a href="extension.zip" class="btn" download>Download Extension (.zip)</a>
+        <p style="font-size:11px;color:#6a6662;margin-top:10px">Unzip → <code>chrome://extensions</code> → Developer mode → Load unpacked</p>
+      </div>
+      <div class="card" style="text-align:center;padding:36px 24px">
+        <div style="font-size:40px;margin-bottom:12px">💻</div>
+        <h3>Full Project (with Server)</h3>
+        <p style="font-size:13px;color:#8a8682;margin:8px 0 16px">Complete source code including the Flask server, model, and extension. For local use or self-hosting.</p>
+        <a href="https://github.com/hmnf31/chess-maia2-assistent" target="_blank" class="btn btn-secondary">View on GitHub →</a>
+        <p style="font-size:11px;color:#6a6662;margin-top:10px">Clone: <code>git clone https://github.com/hmnf31/chess-maia2-assistent.git</code></p>
+      </div>
+    </div>
+
+    <div class="pricing-note">
+      <h3>💼 Commercial Use & Licensing</h3>
+      <p>This project is currently open source under MIT License. For commercial licensing, custom integrations, or white-label solutions — contact the author.</p>
+      <a href="https://tiktok.com/@fajarsadchess" target="_blank" class="btn btn-outline">Contact on TikTok</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="social-links">
+      <a href="https://github.com/hmnf31/chess-maia2-assistent" target="_blank">GitHub</a>
+      <a href="https://tiktok.com/@fajarsadchess" target="_blank">TikTok</a>
+      <a href="https://huggingface.co/spaces/Hmnf31/maia2online" target="_blank">HF Spaces</a>
+    </div>
+    <p>Built with <a href="https://github.com/CSSLab/maia2">Maia-2</a> (NeurIPS 2024) by CSSLab, University of Toronto</p>
+    <p style="margin-top:4px">&copy; 2026 hmnf31 · MIT License</p>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
