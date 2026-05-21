@@ -1,3 +1,13 @@
+---
+title: Maia-2 Human-like Chess Engine
+emoji: ♟️
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Maia-2 Human-like Chess Engine
 
 Chrome Extension + Flask Server berbasis **Maia-2** (NeurIPS 2024) — model AI catur yang memprediksi langkah seperti **manusia** berdasarkan level ELO, bukan engine penghitung varian.
