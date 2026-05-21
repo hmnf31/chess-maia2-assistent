@@ -276,7 +276,7 @@ const PERSONA_DEFAULTS = {
   joker:{elo_self:1400,elo_oppo:1400,temperature:1.5,style:"aggressive",emotion:true,fatigue:true}
 };
 
-const MOOD_ICONS = {calm:"😐",confident:"😏",frustrated:"😤",tired:"😩",pressured:"😰",aggressive:"😠"};
+const MOOD_ICONS = {calm:"\u{1F610}",confident:"\u{1F60F}",frustrated:"\u{1F624}",tired:"\u{1F629}",pressured:"\u{1F630}",aggressive:"\u{1F620}"};
 
 function onPersonaChange(){
   const p=document.getElementById('persona').value;
@@ -398,11 +398,10 @@ async function clearRepertoire(){
 
 async function checkStatus(){
   try{
-    const r=await fetch('/');
+    const r=await fetch('/api/health');
     if(r.ok){
       document.getElementById('serverStatus').className='status-badge online';
       document.getElementById('serverStatus').innerHTML='<span class="status-dot"></span>Online';
-      const d=await r.json();
     }
   }catch(e){
     document.getElementById('serverStatus').className='status-badge offline';
