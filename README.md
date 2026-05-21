@@ -1,9 +1,21 @@
-<<<<<<< HEAD
 # Maia-2 Human-like Chess Engine
 
 Chrome Extension + Flask Server berbasis **Maia-2** (NeurIPS 2024) — model AI catur yang memprediksi langkah seperti **manusia** berdasarkan level ELO, bukan engine penghitung varian.
 
 Berbeda dengan Stockfish/LC0 yang mencari langkah **terkuat**, Maia-2 memprediksi langkah yang paling mungkin dimainkan **manusia** di rating tertentu. Proyek ini menambahkan layer **persona, emosi, fatigue, style biasing, dan repertoire memory** di atas Maia-2 untuk simulasi kepribadian yang lebih realistis.
+
+---
+
+## Dual-Server Mode
+
+Proyek mendukung **dua mode** koneksi:
+
+| Mode | URL | Kegunaan |
+|------|-----|----------|
+| **Local** | `http://127.0.0.1:5000` | Development, offline, tanpa internet |
+| **Online (HF Spaces)** | `https://hmnf31-maia2online.hf.space` | Produksi, langsung pakai, tanpa instal Python |
+
+Extension otomatis default ke **server online** — langsung bisa dipakai tanpa menjalankan server lokal.
 
 ---
 
@@ -30,55 +42,39 @@ Berbeda dengan Stockfish/LC0 yang mencari langkah **terkuat**, Maia-2 memprediks
 
 ### Chrome Extension Features
 - **Multi-Line Analysis** — top 5 langkah dengan arrow warna berbeda + persentase
-- **Eval Bar** — win probability bar real-time (seperti Stockfish eval bar)
+- **Eval Bar** — win probability bar real-time
 - **Blunder Detection** — peringatan jika langkah menyimpang jauh dari rekomendasi
-- **End Game Analysis** — analisis otomatis setelah game selesai (accuracy %, blunder count, mood dominan)
-- **Castling Rights** — FEN sekarang menyertakan hak castling (rokade tidak lagi dianggap illegal)
+- **End Game Analysis** — analisis otomatis setelah game selesai
+- **Server URL Config** — ganti antara server lokal dan online dari popup extension
+- **API Key Support** — proteksi server online dengan key
 
 ---
 
-## Struktur Proyek
+## Cara Pakai (Online — Tanpa Install Python)
 
-```
-servermaia2/
-├── server.py              # Flask API server (endpoints)
-├── jalankan_server.bat    # Script untuk menjalankan server
-├── test_maia.py           # Test loading model
-├── requirements.txt       # Python dependencies
-│
-├── maia2/                 # Library Maia-2 original + file extension
-│   ├── __init__.py
-│   ├── model.py           # Model loading from_pretrained()
-│   ├── inference.py       # Inference functions
-│   ├── main.py            # Model architecture (MAIA2Model, Transformer)
-│   ├── utils.py           # Utilities (FEN parsing, elo dict, etc.)
-│   ├── dataset.py         # Dataset classes
-│   ├── train.py           # Training pipeline
-│   ├── content.js         # Chrome content script
-│   ├── popup.html         # Extension popup UI
-│   ├── popup.js           # Extension popup logic
-│   └── manifest.json      # Chrome extension manifest
-│
-├── extension/             # Chrome extension folder (load ini di browser)
-│   ├── manifest.json
-│   ├── content.js
-│   ├── popup.html
-│   └── popup.js
-│
-├── maia2_models/          # Model weights (auto-downloaded)
-│   └── *.pt
-│
-└── repertoire.json        # Transposition table (auto-generated)
-```
+Langsung pakai server online di Hugging Face Spaces:
+
+1. Buka `chrome://extensions`
+2. Enable **Developer mode**
+3. Klik **Load unpacked**
+4. Pilih folder `extension/`
+5. Buka Chess.com atau Lichess.org
+6. Extension otomatis connect ke server online
+
+Extension sudah default ke `https://hmnf31-maia2online.hf.space` — tidak perlu setting apapun.
+
+### Ganti ke Server Lokal (Opsional)
+
+Buka popup extension, ubah URL ke `http://127.0.0.1:5000`, klik **Test**, lalu **Simpan**.
 
 ---
 
-## Cara Instalasi & Penggunaan
+## Cara Pakai (Local — Server Python)
 
 ### 1. Install Dependencies
 
 ```bash
-pip install torch flask flask-cors numpy chess gdown pyzstd einops pandas pyyaml requests tqdm
+pip install -r requirements.txt
 ```
 
 ### 2. Download Model
@@ -87,7 +83,7 @@ Jalankan test untuk mendownload model Maia-2:
 ```bash
 python test_maia.py
 ```
-Atau langsung start server — model akan otomatis di-download saat pertama kali.
+Atau langsung start server — model akan otomatis di-download saat pertama kali dari Google Drive.
 
 ### 3. Start Server
 
@@ -104,7 +100,6 @@ Server berjalan di `http://127.0.0.1:5000`.
 2. Enable **Developer mode**
 3. Klik **Load unpacked**
 4. Pilih folder `extension/`
-5. Extension siap digunakan
 
 ### 5. Buka chess.com atau lichess.org
 
@@ -112,17 +107,45 @@ Extension otomatis aktif. Pilih persona dari popup extension.
 
 ---
 
+## HF Spaces (Deploy Sendiri)
+
+Server sudah di-deploy di `https://hmnf31-maia2online.hf.space`. Untuk deploy ulang atau kustomisasi:
+
+```bash
+cd hf_maia2online
+git add -A
+git commit -m "update"
+git push origin main
+```
+
+HF Spaces auto-build dan auto-deploy dari push ke repo `huggingface.co/spaces/Hmnf31/maia2online`.
+
+### Set API Key (Opsional)
+
+```bash
+curl -X POST https://huggingface.co/api/spaces/Hmnf31/maia2online/secret \
+  -H "Authorization: Bearer YOUR_HF_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "MAIA_API_KEY", "value": "your-secret-key"}'
+```
+
+---
+
 ## API Endpoints
+
+### Daftar Endpoint
 
 | Endpoint | Method | Deskripsi |
 |----------|--------|-----------|
+| `/` | GET | Halaman web UI (config panel + evaluator) |
+| `/api/health` | GET | Health check |
+| `/personas` | GET | Daftar persona profile |
 | `/predict` | POST | Prediksi langkah terbaik + top 5 + mood + persona |
+| `/predict_top5` | POST | Top 5 langkah saja |
 | `/evaluate_move` | POST | Evaluasi langkah user (blunder/inaccuracy) |
 | `/analyze_game` | POST | Analisis game setelah selesai |
-| `/predict_top5` | POST | Top 5 langkah saja |
 | `/reset_emotion` | POST | Reset mood ke calm |
 | `/repertoire` | GET/POST/DELETE | Manage transposition table |
-| `/personas` | GET | Daftar persona profile |
 
 ### Contoh Request `/predict`
 
@@ -132,7 +155,12 @@ Extension otomatis aktif. Pilih persona dari popup extension.
   "elo_self": 1500,
   "elo_oppo": 1500,
   "mode": "blitz",
-  "persona": "club_player"
+  "persona": "club_player",
+  "temperature": 0.7,
+  "style": "aggressive",
+  "bias_strength": 0.2,
+  "emotion_enabled": true,
+  "fatigue_enabled": true
 }
 ```
 
@@ -144,9 +172,9 @@ Extension otomatis aktif. Pilih persona dari popup extension.
   "win_prob": 0.52,
   "top_moves": [
     {"move": "d4d5", "prob": 0.38},
-    {"move": "e4e5", "prob": 0.22},
-    {"move": "Bg5", "prob": 0.15}
+    {"move": "e4e5", "prob": 0.22}
   ],
+  "move_probs": {"d4d5": 0.38, "e4e5": 0.22, ...},
   "persona_label": "Pemain Klub",
   "mood": "calm",
   "move_count": 12,
@@ -154,11 +182,78 @@ Extension otomatis aktif. Pilih persona dari popup extension.
 }
 ```
 
+### Parameter `/predict` Lengkap
+
+| Parameter | Tipe | Default | Deskripsi |
+|-----------|------|---------|-----------|
+| `fen` | string | required | FEN posisi catur |
+| `persona` | string | `"club_player"` | Nama persona |
+| `mode` | string | `"blitz"` | `"blitz"` atau `"rapid"` |
+| `elo_self` | int | dari persona | ELO pemain |
+| `elo_oppo` | int | dari persona | ELO lawan |
+| `temperature` | float | dari persona | Randomness (0.05–3.0) |
+| `style` | string | dari persona | Override gaya: `aggressive`, `positional`, `solid`, `technical`, `universal` |
+| `bias_strength` | float | 0.15 | Kekuatan style bias (0–0.5) |
+| `emotion_enabled` | bool | dari persona | Aktifkan sistem emosi |
+| `fatigue_enabled` | bool | dari persona | Aktifkan sistem fatigue |
+
+---
+
+## Web UI (HF Spaces)
+
+Server menyediakan halaman web di `/` yang bisa digunakan untuk:
+
+- Memilih persona dan melihat parameter detailnya
+- Mengatur ELO, temperature, style bias
+- Toggle emotion/fatigue system
+- Input FEN + klik Analyze untuk evaluasi posisi
+- Melihat best move, top 5 moves, win probability bar
+- Melihat mood engine saat ini
+- Reset emotion atau clear repertoire cache
+
+Buka `https://hmnf31-maia2online.hf.space` di browser.
+
+---
+
+## Struktur Proyek
+
+```
+servermaia2/
+├── server.py              # Flask API server (endpoints)
+├── Dockerfile             # Docker image untuk HF Spaces
+├── requirements.txt       # Python dependencies
+├── templates/
+│   └── index.html         # Web UI halaman config & evaluator
+│
+├── maia2/                 # Library Maia-2 original
+│   ├── model.py           # Model loading from_pretrained()
+│   ├── inference.py       # Inference functions
+│   ├── main.py            # Model architecture
+│   ├── utils.py           # Utilities
+│   ├── content.js         # Chrome content script
+│   ├── popup.html         # Extension popup UI
+│   ├── popup.js           # Extension popup logic
+│   └── manifest.json      # Chrome extension manifest
+│
+├── extension/             # Chrome extension folder (load ini)
+│   ├── manifest.json
+│   ├── content.js
+│   ├── popup.html
+│   └── popup.js
+│
+├── maia2_models/          # Model weights
+│   └── blitz_model.pt
+│
+├── hf_maia2online/        # Git clone HF Spaces repo
+│
+└── repertoire.json        # Transposition table (auto-generated)
+```
+
 ---
 
 ## Persona Customization
 
-Persona bisa dikustomisasi langsung di `server.py` di dictionary `PERSONAS` (line 21-64):
+Persona bisa dikustomisasi langsung di `server.py` di dictionary `PERSONAS`:
 
 ```python
 "my_custom_persona": {
@@ -173,7 +268,7 @@ Persona bisa dikustomisasi langsung di `server.py` di dictionary `PERSONAS` (lin
 ```
 
 Parameter:
-- `elo_self` / `elo_oppo` — level ELO (800-3500)
+- `elo_self` / `elo_oppo` — level ELO (800–3500)
 - `temperature` — 0.05 (sangat konsisten) sampai 3.0 (sangat acak)
 - `style` — aggressive, positional, solid, technical, universal
 - `emotion_enabled` — apakah mood mempengaruhi temperature
@@ -185,9 +280,20 @@ Parameter:
 
 - **Model:** Maia-2 (NeurIPS 2024) — PyTorch
 - **Backend:** Flask (Python)
-- **Frontend:** Chrome Extension (Manifest V3)
+- **Frontend:** Chrome Extension (Manifest V3) + Web UI (HTML/CSS/JS)
+- **Hosting:** Hugging Face Spaces (CPU free tier)
 - **Chess:** python-chess
 - **Compute:** CPU (GPU optional)
+
+---
+
+## Environment Variables
+
+| Variable | Deskripsi |
+|----------|-----------|
+| `PORT` | Port server (default: 7860) |
+| `HF_SPACE` | Set `"1"` jika di HF Spaces |
+| `MAIA_API_KEY` | API key untuk autentikasi |
 
 ---
 
@@ -195,80 +301,10 @@ Parameter:
 
 - [Maia-2](https://github.com/CSSLab/maia2) — NeurIPS 2024 paper by CSSLab, University of Toronto
 - Original Maia-2 research: [arXiv:2409.20553](https://arxiv.org/abs/2409.20553)
+- Hugging Face Spaces untuk hosting gratis
 
 ---
 
 ## License
 
 MIT
-=======
-# ♟️ Chess Maia-2 Assistant
-
-Asisten catur berbasis AI yang menggunakan **Maia-2** untuk memberikan prediksi langkah catur ala manusia. Proyek ini terdiri dari server backend (Python/Flask) dan ekstensi Chrome yang menggambar langkah terbaik langsung di papan Chess.com / Lichess.
-
-## ✨ Fitur
-
-- **Maia-2 Engine** — Model catur yang dilatih dari jutaan permainan manusia
-- **Visual Hint** — Panah hijau otomatis untuk langkah terbaik
-- **Multi-Mode** — Dukungan mode Blitz & Rapid
-- **ELO Custom** — Sesuaikan target ELO pemain dan lawan
-- **Castling Support** — Deteksi rokade pendek/panjang
-- **Real-time Sync** — Deteksi perubahan papan otomatis
-
-## 🧱 Struktur Proyek
-
-```
-Chess-Maia2/
-├── extension/           # Ekstensi Chrome
-│   ├── manifest.json
-│   ├── content.js       # Inject ke Chess.com/Lichess
-│   ├── popup.html       # Panel pengaturan
-│   └── popup.js
-├── servermaia2/         # Backend Python
-│   ├── server.py        # Flask API server
-│   ├── test_maia.py     # Test model
-│   ├── jalankan_server.bat
-│   └── maia2/           # Library Maia-2 (official)
-└── README.md
-```
-
-## 🛠️ Persyaratan
-
-- Python 3.10+
-- Google Chrome
-- Library: `flask`, `flask-cors`, `torch`, `python-chess`, `gdown`, `pyzstd`, `einops`
-
-## 🚀 Cara Pakai
-
-### 1. Install dependencies
-```bash
-pip install flask flask-cors torch python-chess gdown pyzstd einops
-```
-
-### 2. Jalankan server
-```bash
-cd servermaia2
-python server.py
-```
-
-### 3. Muat ekstensi Chrome
-- Buka `chrome://extensions`
-- Aktifkan **Developer mode**
-- Klik **Load unpacked**
-- Pilih folder `extension`
-
-### 4. Buka Chess.com
-Setelah server berjalan dan ekstensi aktif, panah hijau akan muncul secara otomatis di papan catur.
-
-## 👤 Pembuat
-
-Dibuat oleh **hmnf31** — proyek spesial untuk client di TikTok.
-
-TikTok: [@fajarsadchess](https://tiktok.com/@fajarsadchess)
-
-## 📄 Lisensi
-
-Proyek ini menggunakan Maia-2 ([MIT License](servermaia2/maia2/LICENSE)) dan kode tambahan di bawah lisensi MIT.
-
-
->>>>>>> 207f98cca6bceb1c811290cd207f4d18a7b954db
