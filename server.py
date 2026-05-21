@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import json
 import os
@@ -273,8 +273,6 @@ def resolve_params(persona_name, req_elo_self, req_elo_oppo, req_mode, req_tempe
     elo_oppo = req_elo_oppo if req_elo_oppo is not None else pc["elo_oppo"]
     mode = req_mode if req_mode else "blitz"
     base_temp = req_temperature if req_temperature is not None else pc["temperature"]
-    if pc["emotion_enabled"]:
-        base_temp += emotion_state.get_temperature_modifier()
     base_temp = max(0.05, min(3.0, base_temp))
     return elo_self, elo_oppo, mode, base_temp, pc
 
@@ -283,6 +281,10 @@ def get_top_moves(move_probs, n=5):
     return [{"move": m, "prob": round(p, 4)} for m, p in sorted_moves[:n]]
 
 @app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/api/health")
 def health():
     return jsonify({"status": "ok", "service": "maia2"})
 
@@ -301,6 +303,10 @@ def predict():
         req_mode = data.get("mode", "blitz")
         persona_name = data.get("persona", "club_player")
         req_temperature = data.get("temperature")
+        style_override = data.get("style")
+        bias_strength = data.get("bias_strength")
+        req_emotion = data.get("emotion_enabled")
+        req_fatigue = data.get("fatigue_enabled")
 
         if not fen:
             return jsonify({"error": "FEN tidak boleh kosong"}), 400
@@ -308,6 +314,15 @@ def predict():
         elo_self, elo_oppo, mode, temperature, pc = resolve_params(
             persona_name, req_elo_self, req_elo_oppo, req_mode, req_temperature
         )
+
+        effective_style = style_override if style_override else pc["style"]
+        effective_bias = bias_strength if bias_strength is not None else 0.15
+        effective_emotion = req_emotion if req_emotion is not None else pc["emotion_enabled"]
+        effective_fatigue = req_fatigue if req_fatigue is not None else pc["fatigue_enabled"]
+
+        if effective_emotion:
+            temperature += emotion_state.get_temperature_modifier()
+        temperature = max(0.05, min(3.0, temperature))
 
         h = _init_heavy()
         maia2_model = get_maia_model(mode)
@@ -341,8 +356,8 @@ def predict():
             maia2_model, get_prepared(), fen, elo_self, elo_oppo
         )
 
-        move_probs = apply_fatigue(move_probs, emotion_state.total_moves, pc["fatigue_enabled"])
-        move_probs = style_bias_top_moves(move_probs, fen, pc["style"])
+        move_probs = apply_fatigue(move_probs, emotion_state.total_moves, effective_fatigue)
+        move_probs = style_bias_top_moves(move_probs, fen, effective_style, effective_bias)
 
         best_move, best_prob = stochastic_sample(move_probs, temperature)
 

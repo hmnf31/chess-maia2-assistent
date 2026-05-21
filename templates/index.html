@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maia-2 Chess Engine</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:#0f0e0d;color:#e8e6e3;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+
+/* Header */
+.header{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);border-radius:12px;padding:20px 24px;margin-bottom:16px;border:1px solid #333230;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header-left{display:flex;align-items:center;gap:16px}
+.logo{width:44px;height:44px;background:linear-gradient(135deg,#81b64c,#6e9d40);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0}
+.header h1{font-size:18px;font-weight:700;color:#e8e6e3}
+.header .sub{font-size:12px;color:#8a8682;margin-top:2px}
+.header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.status-badge{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:500}
+.status-badge.online{background:#1a2e1a;color:#81b64c;border:1px solid #2a4e2a}
+.status-badge.offline{background:#2e1a1a;color:#e74c3c;border:1px solid #4e2a2a}
+.status-dot{width:7px;height:7px;border-radius:50%}
+.status-badge.online .status-dot{background:#81b64c}
+.status-badge.offline .status-dot{background:#e74c3c}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:1fr;gap:16px}
+
+/* Cards */
+.card{background:#1a1a1a;border-radius:10px;padding:18px;border:1px solid #2a2826}
+.card-title{font-size:11px;font-weight:600;color:#81b64c;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #2a2826;display:flex;align-items:center;justify-content:space-between}
+.card-title .badge{font-size:10px;background:#2a2826;color:#8a8682;padding:2px 8px;border-radius:4px;text-transform:none;letter-spacing:0}
+
+/* Config rows */
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.row:last-child{margin-bottom:0}
+.field{flex:1;min-width:140px}
+.field label{display:block;font-size:11px;color:#8a8682;margin-bottom:3px;font-weight:500}
+.field select,.field input{width:100%;background:#121110;color:#e8e6e3;border:1px solid #333230;padding:7px 10px;border-radius:5px;font-size:13px;outline:none;transition:border .2s}
+.field select:focus,.field input:focus{border-color:#81b64c}
+.field select{cursor:pointer}
+.field input[type=number]{-moz-appearance:textfield}
+.field input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+.field .hint{font-size:10px;color:#6a6662;margin-top:2px}
+
+/* Slider */
+.slider-group{margin-bottom:10px}
+.slider-group:last-child{margin-bottom:0}
+.slider-group .slider-header{display:flex;justify-content:space-between;font-size:11px;color:#8a8682;margin-bottom:3px}
+.slider-group input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;background:#333230;border-radius:2px;outline:none;cursor:pointer}
+.slider-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:#81b64c;border:2px solid #1a1a1a;cursor:pointer}
+.slider-group input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#81b64c;border:2px solid #1a1a1a;cursor:pointer}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0}
+.toggle-row label{font-size:12px;color:#c8c4c0;cursor:pointer;user-select:none}
+.switch{position:relative;display:inline-block;width:34px;height:18px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider-knob{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#3a3835;transition:.25s;border-radius:18px}
+.slider-knob:before{position:absolute;content:"";height:14px;width:14px;left:2px;bottom:2px;background:#666;transition:.25s;border-radius:50%}
+input:checked+.slider-knob{background:#81b64c}
+input:checked+.slider-knob:before{background:#fff;transform:translateX(16px)}
+
+/* FEN input */
+.fen-row{display:flex;gap:8px}
+.fen-row input{flex:1;background:#121110;color:#e8e6e3;border:1px solid #333230;padding:9px 12px;border-radius:6px;font-size:13px;font-family:'SF Mono','Consolas',monospace;outline:none;transition:border .2s}
+.fen-row input:focus{border-color:#81b64c}
+.fen-row input::placeholder{color:#6a6662;font-family:-apple-system,'Segoe UI',sans-serif}
+
+/* Buttons */
+.btn{background:#81b64c;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn:hover{background:#6e9d40}
+.btn:active{background:#5c8a34}
+.btn:disabled{background:#3a3835;color:#6a6662;cursor:not-allowed}
+.btn-secondary{background:#2a2826;color:#c8c4c0;border:1px solid #3a3835}
+.btn-secondary:hover{background:#3a3835;color:#e8e6e3}
+.btn-sm{padding:6px 12px;font-size:11px}
+
+/* Results */
+.results{display:none;animation:fadeIn .3s}
+.results.show{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.best-move-card{background:linear-gradient(135deg,#1a2e1a,#1a1a1a);border:1px solid #2a4e2a;border-radius:8px;padding:14px;text-align:center;margin-bottom:12px}
+.best-move-card .move{font-size:28px;font-weight:700;color:#81b64c;font-family:'SF Mono','Consolas',monospace}
+.best-move-card .prob{font-size:13px;color:#8a8682;margin-top:2px}
+.best-move-card .label{font-size:10px;color:#6a6662;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+
+.win-bar{display:flex;height:22px;border-radius:4px;overflow:hidden;margin:10px 0;font-size:10px;font-weight:600}
+.win-bar .white-seg{background:#e8e6e3;color:#1a1a1a;display:flex;align-items:center;justify-content:center;transition:width .5s}
+.win-bar .black-seg{background:#1a1a1a;color:#e8e6e3;display:flex;align-items:center;justify-content:center;border-left:1px solid #333;transition:width .5s}
+
+.move-list{list-style:none}
+.move-list li{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:4px;margin-bottom:2px;transition:background .15s}
+.move-list li:hover{background:#2a2826}
+.move-list li.best{background:#1a2e1a;border:1px solid #2a4e2a;margin:-1px}
+.move-list .move-name{font-family:'SF Mono','Consolas',monospace;font-size:14px;font-weight:500}
+.move-list .move-name .tag{font-size:9px;background:#81b64c;color:#1a1a1a;padding:1px 5px;border-radius:3px;margin-left:6px;font-weight:700}
+.move-list .move-bar-wrap{display:flex;align-items:center;gap:8px;flex:1;max-width:200px;margin-left:12px}
+.move-list .move-bar{height:14px;border-radius:3px;background:#81b64c;transition:width .5s;min-width:2px}
+.move-list .move-pct{font-size:11px;color:#8a8682;min-width:36px;text-align:right}
+
+.mood-display{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#2a2826;border-radius:6px;font-size:12px}
+.mood-display .mood-icon{font-size:16px}
+.mood-display .mood-name{font-weight:500;color:#c8c4c0}
+.mood-display .mood-desc{color:#6a6662;font-size:11px}
+
+/* Repertoire info */
+.repertoire-info{font-size:11px;color:#6a6662;padding:8px 0 0;border-top:1px solid #2a2826;margin-top:10px}
+
+/* Loading */
+.loading{display:inline-block;width:14px;height:14px;border:2px solid #3a3835;border-top:2px solid #81b64c;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2a2826;color:#e8e6e3;padding:10px 20px;border-radius:8px;font-size:13px;border:1px solid #3a3835;display:none;z-index:100;animation:fadeIn .2s;max-width:90%}
+.toast.error{border-color:#4e2a2a;background:#2e1a1a;color:#e74c3c}
+.toast.show{display:block}
+
+/* Responsive */
+@media(min-width:768px){
+.grid{grid-template-columns:1fr 1fr}
+.grid .full{grid-column:span 2}
+}
+@media(min-width:1024px){
+.container{padding:24px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">♟</div>
+      <div>
+        <h1>Maia-2 Engine</h1>
+        <div class="sub">Human-like Chess AI · Server-side Config</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="status-badge online" id="serverStatus"><span class="status-dot"></span>Online</span>
+      <button class="btn btn-sm btn-secondary" onclick="resetEmotion()">Reset Emotion</button>
+      <button class="btn btn-sm btn-secondary" onclick="clearRepertoire()">Clear Cache</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Persona &amp; Skill</div>
+      <div class="row">
+        <div class="field">
+          <label>Persona</label>
+          <select id="persona" onchange="onPersonaChange()">
+            <option value="beginner">Pemula Antusias (1200)</option>
+            <option value="club_player" selected>Pemain Klub (1500)</option>
+            <option value="tournament">Tournament Grinder (1800)</option>
+            <option value="talented_youth">Talenta Muda (2100)</option>
+            <option value="master">Master Senior (2400)</option>
+            <option value="joker">The Joker (1400)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Game Mode</label>
+          <select id="mode">
+            <option value="blitz" selected>Blitz</option>
+            <option value="rapid">Rapid</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>My ELO</label>
+          <input type="number" id="eloSelf" value="1500" min="800" max="3500">
+        </div>
+        <div class="field">
+          <label>Opponent ELO</label>
+          <input type="number" id="eloOppo" value="1500" min="800" max="3500">
+        </div>
+        <div class="field">
+          <label>Style Bias</label>
+          <select id="styleOverride">
+            <option value="">Default (from persona)</option>
+            <option value="aggressive">Aggressive</option>
+            <option value="positional">Positional</option>
+            <option value="solid">Solid</option>
+            <option value="technical">Technical</option>
+            <option value="universal">Universal</option>
+          </select>
+          <div class="hint">Overrides persona style</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Engine Behavior</div>
+      <div class="slider-group">
+        <div class="slider-header"><span>Temperature</span><span id="tempVal">0.70</span></div>
+        <input type="range" id="temperature" min="0.05" max="3.0" step="0.05" value="0.7" oninput="document.getElementById('tempVal').textContent=parseFloat(this.value).toFixed(2)">
+        <div class="hint" style="font-size:10px;color:#6a6662;margin-top:2px">Higher = more random; Lower = more deterministic</div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-header"><span>Style Bias Strength</span><span id="biasVal">0.15</span></div>
+        <input type="range" id="biasStrength" min="0" max="0.5" step="0.01" value="0.15" oninput="document.getElementById('biasVal').textContent=parseFloat(this.value).toFixed(2)">
+        <div class="hint" style="font-size:10px;color:#6a6662">How strongly to enforce style preference</div>
+      </div>
+      <div style="border-top:1px solid #2a2826;padding-top:10px;margin-top:10px">
+        <div class="toggle-row">
+          <label>Enable Emotion System</label>
+          <label class="switch"><input type="checkbox" id="emotionToggle" checked><span class="slider-knob"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label>Enable Fatigue</label>
+          <label class="switch"><input type="checkbox" id="fatigueToggle" checked><span class="slider-knob"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card full">
+      <div class="card-title">Evaluate Position <span class="badge">FEN Input</span></div>
+      <div class="fen-row">
+        <input type="text" id="fenInput" placeholder="Paste FEN string here..." value="rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1">
+        <button class="btn" id="evalBtn" onclick="evaluate()">Analyze</button>
+      </div>
+
+      <div class="results" id="results">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+          <div>
+            <div class="best-move-card" id="bestMoveCard">
+              <div class="label">Best Move</div>
+              <div class="move" id="bestMove">—</div>
+              <div class="prob" id="bestProb"></div>
+            </div>
+            <div id="moodDisplay" class="mood-display" style="margin-top:8px">
+              <span class="mood-icon">😐</span>
+              <span class="mood-name">Calm</span>
+              <span class="mood-desc" id="moodDesc">Engine mood</span>
+            </div>
+          </div>
+          <div>
+            <div class="card-title" style="margin-bottom:6px;border-bottom:none;padding-bottom:0">Win Probability</div>
+            <div class="win-bar" id="winBar">
+              <div class="white-seg" id="whiteWin" style="width:50%">50%</div>
+              <div class="black-seg" id="blackWin" style="width:50%">50%</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#6a6662;margin-top:2px">
+              <span>White</span>
+              <span>Black</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-title" style="margin-top:14px">Top 5 Moves</div>
+        <ul class="move-list" id="moveList">
+          <li class="best"><span class="move-name">e7e5 <span class="tag">Best</span></span><div class="move-bar-wrap"><div class="move-bar" style="width:100%"></div><span class="move-pct">30.0%</span></div></li>
+        </ul>
+
+        <div class="repertoire-info" id="repertoireInfo">
+          <span>Repertoire size: <strong id="repertoireSize">0</strong> positions</span>
+          <span style="margin-left:12px">Mood: <strong id="currentMood">calm</strong></span>
+          <span style="margin-left:12px">Moves analyzed: <strong id="moveCount">0</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PERSONA_DEFAULTS = {
+  beginner:{elo_self:1200,elo_oppo:1200,temperature:0.95,style:"aggressive",emotion:true,fatigue:true},
+  club_player:{elo_self:1500,elo_oppo:1500,temperature:0.7,style:"solid",emotion:true,fatigue:true},
+  tournament:{elo_self:1800,elo_oppo:1750,temperature:0.45,style:"positional",emotion:true,fatigue:true},
+  talented_youth:{elo_self:2100,elo_oppo:2050,temperature:0.35,style:"aggressive",emotion:true,fatigue:false},
+  master:{elo_self:2400,elo_oppo:2350,temperature:0.15,style:"technical",emotion:false,fatigue:false},
+  joker:{elo_self:1400,elo_oppo:1400,temperature:1.5,style:"aggressive",emotion:true,fatigue:true}
+};
+
+const MOOD_ICONS = {calm:"😐",confident:"😏",frustrated:"😤",tired:"😩",pressured:"😰",aggressive:"😠"};
+
+function onPersonaChange(){
+  const p=document.getElementById('persona').value;
+  const d=PERSONA_DEFAULTS[p];
+  if(!d)return;
+  document.getElementById('eloSelf').value=d.elo_self;
+  document.getElementById('eloOppo').value=d.elo_oppo;
+  document.getElementById('temperature').value=d.temperature;
+  document.getElementById('tempVal').textContent=d.temperature.toFixed(2);
+  document.getElementById('styleOverride').value='';
+  document.getElementById('emotionToggle').checked=d.emotion;
+  document.getElementById('fatigueToggle').checked=d.fatigue;
+}
+
+function showToast(msg,isError){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast'+(isError?' error':'')+' show';
+  clearTimeout(t._hide);t._hide=setTimeout(()=>t.className='toast',3000);
+}
+
+let evaluating=false;
+async function evaluate(){
+  if(evaluating)return;
+  const btn=document.getElementById('evalBtn');
+  const res=document.getElementById('results');
+  const fen=document.getElementById('fenInput').value.trim();
+  if(!fen){showToast('Please enter a FEN string',true);return}
+
+  evaluating=true;
+  btn.disabled=true;
+  btn.innerHTML='<span class="loading"></span> Analyzing...';
+  res.className='results';
+
+  try{
+    const persona=document.getElementById('persona').value;
+    const mode=document.getElementById('mode').value;
+    const eloSelf=parseInt(document.getElementById('eloSelf').value)||1500;
+    const eloOppo=parseInt(document.getElementById('eloOppo').value)||1500;
+    const temperature=parseFloat(document.getElementById('temperature').value)||0.7;
+    const styleOverride=document.getElementById('styleOverride').value;
+    const biasStrength=parseFloat(document.getElementById('biasStrength').value)||0.15;
+    const emotionEnabled=document.getElementById('emotionToggle').checked;
+    const fatigueEnabled=document.getElementById('fatigueToggle').checked;
+
+    const body={fen,persona,mode,elo_self:eloSelf,elo_oppo:eloOppo,temperature};
+    if(styleOverride)body.style=styleOverride;
+    if(biasStrength!==0.15)body.bias_strength=biasStrength;
+
+    const resp=await fetch('/predict',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||'Server error')}
+    const data=await resp.json();
+    displayResults(data,fen);
+  }catch(e){
+    showToast('Error: '+e.message,true);
+  }finally{
+    evaluating=false;
+    btn.disabled=false;
+    btn.textContent='Analyze';
+  }
+}
+
+function displayResults(data,fen){
+  const res=document.getElementById('results');
+  res.className='results show';
+
+  document.getElementById('bestMove').textContent=data.bestmove||'—';
+  document.getElementById('bestProb').textContent=data.bestmove?'Probability: '+(data.move_probs[data.bestmove]*100).toFixed(1)+'%':'';
+
+  const winBar=document.getElementById('winBar');
+  const ww=document.getElementById('whiteWin');
+  const bw=document.getElementById('blackWin');
+  const wp=data.win_prob!==undefined?data.win_prob:0.5;
+  const whitePct=(fen.split(' ')[1]==='w'?wp:1-wp)*100;
+  const blackPct=100-whitePct;
+  ww.style.width=whitePct+'%';
+  ww.textContent=Math.round(whitePct)+'%';
+  bw.style.width=blackPct+'%';
+  bw.textContent=Math.round(blackPct)+'%';
+
+  const mood=data.mood||'calm';
+  const md=document.getElementById('moodDisplay');
+  md.querySelector('.mood-icon').textContent=MOOD_ICONS[mood]||'😐';
+  md.querySelector('.mood-name').textContent=mood.charAt(0).toUpperCase()+mood.slice(1);
+  md.querySelector('.mood-desc').textContent='Persona: '+(data.persona_label||'—');
+
+  const ml=document.getElementById('moveList');
+  const moves=data.top_moves||[];
+  const bestProbVal=moves.length>0?moves[0].prob:0;
+  ml.innerHTML=moves.map((m,i)=>{
+    const pct=(m.prob*100).toFixed(1);
+    const relWidth=bestProbVal>0?(m.prob/bestProbVal*100):0;
+    return '<li'+(i===0?' class="best"':'')+'>'+
+      '<span class="move-name">'+m.move+(i===0?' <span class="tag">Best</span>':'')+'</span>'+
+      '<div class="move-bar-wrap"><div class="move-bar" style="width:'+relWidth+'%"></div><span class="move-pct">'+pct+'%</span></div></li>';
+  }).join('');
+
+  document.getElementById('repertoireSize').textContent=data.from_repertoire?'cached':'—';
+  document.getElementById('currentMood').textContent=data.mood||'calm';
+  document.getElementById('moveCount').textContent=data.move_count||0;
+}
+
+async function resetEmotion(){
+  try{
+    const r=await fetch('/reset_emotion',{method:'POST',headers:{'Content-Type':'application/json'}});
+    if(r.ok){showToast('Emotion reset');const d=await r.json();document.getElementById('currentMood').textContent=d.mood||'calm'}
+  }catch(e){showToast('Error resetting emotion',true)}
+}
+
+async function clearRepertoire(){
+  try{
+    const r=await fetch('/repertoire',{method:'DELETE'});
+    if(r.ok){showToast('Cache cleared')}
+  }catch(e){showToast('Error clearing cache',true)}
+}
+
+async function checkStatus(){
+  try{
+    const r=await fetch('/');
+    if(r.ok){
+      document.getElementById('serverStatus').className='status-badge online';
+      document.getElementById('serverStatus').innerHTML='<span class="status-dot"></span>Online';
+      const d=await r.json();
+    }
+  }catch(e){
+    document.getElementById('serverStatus').className='status-badge offline';
+    document.getElementById('serverStatus').innerHTML='<span class="status-dot"></span>Offline';
+  }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  checkStatus();
+  onPersonaChange();
+});
+</script>
+</body>
+</html>
