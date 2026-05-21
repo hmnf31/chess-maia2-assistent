@@ -1,14 +1,13 @@
-<<<<<<< HEAD
 __pycache__/
 *.pyc
-*.pt
 *.pth
 *.pkl
+*.pt
 
 repertoire.json
 server_output.txt
 server_error.txt
-=======
+hf_maia2online/
 
-servermaia2/maia2_models/
->>>>>>> 207f98cca6bceb1c811290cd207f4d18a7b954db
+maia2_models/*.yaml
+maia2_models/*.yml

@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -7,11 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
-RUN mkdir -p maia2_models
 
 EXPOSE 7860
 

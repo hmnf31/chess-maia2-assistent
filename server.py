@@ -1,20 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import torch
-import numpy as np
 import json
 import os
 import random
-import chess
-import time
-
-from maia2 import model, inference
+import time as time_module
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 API_KEY = os.environ.get("MAIA_API_KEY")
-
 HF_SPACE = os.environ.get("HF_SPACE", "0")
 
 def require_auth():
@@ -33,11 +27,51 @@ def before_request():
     if err:
         return err
 
-loaded_models = {}
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Menjalankan Maia-2 Human-like Server di: {device.upper()}")
+_heavy = None
 
-prepared = inference.prepare()
+def _init_heavy():
+    global _heavy
+    if _heavy is not None:
+        return _heavy
+    import numpy as np
+    import chess
+    import torch
+    from maia2 import model, inference
+    _heavy = {"np": np, "chess": chess, "torch": torch, "model": model, "inference": inference}
+    return _heavy
+
+
+
+loaded_models = {}
+_device = None
+
+def get_device():
+    global _device
+    if _device is None:
+        h = _init_heavy()
+        _device = "cuda" if h["torch"].cuda.is_available() else "cpu"
+        print(f"Menjalankan Maia-2 Human-like Server di: {_device.upper()}")
+    return _device
+
+_prepared = None
+
+def get_prepared():
+    global _prepared
+    if _prepared is None:
+        h = _init_heavy()
+        print("Preparing inference dictionaries...")
+        _prepared = h["inference"].prepare()
+        print("Inference dictionaries ready.")
+    return _prepared
+
+def get_maia_model(mode_type):
+    global loaded_models
+    if mode_type not in loaded_models:
+        h = _init_heavy()
+        print(f"Memuat model Maia-2 ({mode_type}) ke memori...")
+        loaded_models[mode_type] = h["model"].from_pretrained(type=mode_type, device=get_device())
+        print(f"Model {mode_type} berhasil dimuat!")
+    return loaded_models[mode_type]
 
 PERSONAS = {
     "club_player": {
@@ -150,15 +184,9 @@ class EmotionState:
 
 emotion_state = EmotionState()
 
-def get_maia_model(mode_type):
-    global loaded_models
-    if mode_type not in loaded_models:
-        print(f"Memuat model Maia-2 ({mode_type}) ke memori...")
-        loaded_models[mode_type] = model.from_pretrained(type=mode_type, device=device)
-        print(f"Model {mode_type} berhasil dimuat!")
-    return loaded_models[mode_type]
-
 def stochastic_sample(move_probs, temperature=1.0):
+    h = _init_heavy()
+    np = h["np"]
     moves = list(move_probs.keys())
     probs = np.array([move_probs[m] for m in moves], dtype=np.float64)
     if temperature > 0 and temperature != 1.0:
@@ -171,6 +199,8 @@ def apply_fatigue(move_probs, move_count, fatigue_enabled=True):
     if not fatigue_enabled:
         return move_probs
     if move_count > 40:
+        h = _init_heavy()
+        np = h["np"]
         noise = random.gauss(0, 0.015 * min((move_count - 40) / 20, 3))
         moves = list(move_probs.keys())
         probs = np.array([move_probs[m] for m in moves], dtype=np.float64)
@@ -182,6 +212,9 @@ def apply_fatigue(move_probs, move_count, fatigue_enabled=True):
 def style_bias_top_moves(move_probs, fen, style, bias_strength=0.15):
     if style == "universal":
         return move_probs
+    h = _init_heavy()
+    np = h["np"]
+    chess = h["chess"]
     try:
         board = chess.Board(fen)
     except Exception:
@@ -249,6 +282,14 @@ def get_top_moves(move_probs, n=5):
     sorted_moves = sorted(move_probs.items(), key=lambda x: x[1], reverse=True)
     return [{"move": m, "prob": round(p, 4)} for m, p in sorted_moves[:n]]
 
+@app.route("/")
+def health():
+    return jsonify({"status": "ok", "service": "maia2"})
+
+@app.route("/personas", methods=["GET"])
+def get_personas():
+    return jsonify(PERSONAS)
+
 @app.route("/predict", methods=["POST"])
 def predict():
     global emotion_state, repertoire_table
@@ -268,13 +309,13 @@ def predict():
             persona_name, req_elo_self, req_elo_oppo, req_mode, req_temperature
         )
 
+        h = _init_heavy()
         maia2_model = get_maia_model(mode)
 
-        # Cek repertoire
         cached_move = repertoire_table.get(fen)
         if cached_move:
-            move_probs, win_prob = inference.inference_each(
-                maia2_model, prepared, fen, elo_self, elo_oppo
+            move_probs, win_prob = h["inference"].inference_each(
+                maia2_model, get_prepared(), fen, elo_self, elo_oppo
             )
             if cached_move in move_probs:
                 for m in move_probs:
@@ -296,18 +337,15 @@ def predict():
                     "from_repertoire": True
                 })
 
-        move_probs, win_prob = inference.inference_each(
-            maia2_model, prepared, fen, elo_self, elo_oppo
+        move_probs, win_prob = h["inference"].inference_each(
+            maia2_model, get_prepared(), fen, elo_self, elo_oppo
         )
 
-        # Apply layers
         move_probs = apply_fatigue(move_probs, emotion_state.total_moves, pc["fatigue_enabled"])
         move_probs = style_bias_top_moves(move_probs, fen, pc["style"])
 
-        # Stochastic sampling
         best_move, best_prob = stochastic_sample(move_probs, temperature)
 
-        # Save to repertoire
         if fen not in repertoire_table:
             repertoire_table[fen] = best_move
             if len(repertoire_table) <= 10000:
@@ -347,9 +385,10 @@ def evaluate_move():
         elo_self, elo_oppo, mode, temperature, pc = resolve_params(
             persona_name, req_elo_self, req_elo_oppo, req_mode, None
         )
+        h = _init_heavy()
         maia2_model = get_maia_model(mode)
-        move_probs, win_prob = inference.inference_each(
-            maia2_model, prepared, fen, elo_self, elo_oppo
+        move_probs, win_prob = h["inference"].inference_each(
+            maia2_model, get_prepared(), fen, elo_self, elo_oppo
         )
 
         user_prob = move_probs.get(move_uci, 0.0)
@@ -455,10 +494,6 @@ def handle_repertoire():
             os.remove(REPERTOIRE_PATH)
         return jsonify({"status": "deleted"})
 
-@app.route("/personas", methods=["GET"])
-def get_personas():
-    return jsonify(PERSONAS)
-
 @app.route("/predict_top5", methods=["POST"])
 def predict_top5():
     try:
@@ -475,9 +510,10 @@ def predict_top5():
         elo_self, elo_oppo, mode, temperature, pc = resolve_params(
             persona_name, req_elo_self, req_elo_oppo, req_mode, None
         )
+        h = _init_heavy()
         maia2_model = get_maia_model(mode)
-        move_probs, win_prob = inference.inference_each(
-            maia2_model, prepared, fen, elo_self, elo_oppo
+        move_probs, win_prob = h["inference"].inference_each(
+            maia2_model, get_prepared(), fen, elo_self, elo_oppo
         )
 
         top5 = get_top_moves(move_probs, 5)
@@ -487,7 +523,7 @@ def predict_top5():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 7860))
     host = "0.0.0.0" if HF_SPACE == "1" else "127.0.0.1"
     print(f"Listening on {host}:{port}")
     app.run(host=host, port=port, threaded=True)
