@@ -14,8 +14,10 @@ let showArrow = true;
 let showMultiLine = true;
 let blunderWarn = true;
 let showAnalysis = true;
-let serverUrl = "http://127.0.0.1:5000";
+let serverUrl = "https://hmnf31-maia2online.hf.space";
 let apiKey = "";
+let _settingsLoaded = false;
+let _settingsQueue = [];
 
 chrome.storage.local.get([
   "personaSelect", "modelSelect", "eloSelf", "eloOppo",
@@ -33,6 +35,9 @@ chrome.storage.local.get([
   if (data.analysisToggle !== undefined) showAnalysis = data.analysisToggle;
   if (data.serverUrl) serverUrl = data.serverUrl;
   if (data.apiKey) apiKey = data.apiKey;
+  _settingsLoaded = true;
+  _settingsQueue.forEach(fn => fn());
+  _settingsQueue = [];
 });
 
 let castlingTracker = {
@@ -136,16 +141,12 @@ async function apiFetch(endpoint, body) {
 async function checkBlunder(fen, moveUci) {
   try {
     let resp = await apiFetch("/evaluate_move", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fen: fen,
-        move: moveUci,
-        elo_self: eloSelf,
-        elo_oppo: eloOppo,
-        mode: currentModel,
-        persona: currentPersona
-      })
+      fen: fen,
+      move: moveUci,
+      elo_self: eloSelf,
+      elo_oppo: eloOppo,
+      mode: currentModel,
+      persona: currentPersona
     });
     let data = await resp.json();
     lastBlunderInfo = {
@@ -180,6 +181,9 @@ function showBlunderToast(msg) {
 }
 
 async function askEngine(fen) {
+  if (!_settingsLoaded) {
+    await new Promise(resolve => _settingsQueue.push(resolve));
+  }
   isThinking = true;
   try {
     let body = {
